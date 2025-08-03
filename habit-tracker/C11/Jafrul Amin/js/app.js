@@ -1,105 +1,164 @@
-// simple ID generator
-function uuid() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-}
+// main script for habit tracker
 
-let habits = [];
+var habits = [];
 
-// load from localStorage
+// load habits from localStorage
 function loadHabits() {
-  const data = localStorage.getItem('habits');
+  var data = localStorage.getItem('habits');
   if (data) {
     habits = JSON.parse(data);
   }
 }
 
-// save to localStorage
+// save habits to localStorage
 function saveHabits() {
   localStorage.setItem('habits', JSON.stringify(habits));
 }
 
-// render all habits
+// render the list of habits
 function renderHabits() {
-  const ul = document.getElementById('habits');
-  ul.innerHTML = '';
+  var ul = document.getElementById('habits');
+  ul.innerHTML = ''; // clear old list
 
-  habits.forEach(h => {
-    const li = document.createElement('li');
+  for (var i = 0; i < habits.length; i++) {
+    var h = habits[i];
+    var li = document.createElement('li');
     li.className = 'habit-item';
 
-    const info = document.createElement('div');
-    info.className = 'habit-info';
-    info.innerHTML = `<strong>${h.name}</strong> (${h.frequency})<br>
-      Streak: ${calcCurrentStreak(h)} | Longest: ${h.longestStreak || 0}`;
+    // info about name, freq, streaks
+    var info = document.createElement('div');
+    info.innerHTML = 
+      '<strong>' + h.name + '</strong> (' + h.frequency + ')<br>' +
+      'Streak: ' + calcCurrentStreak(h) +
+      ' | Longest: ' + (h.longestStreak || 0);
 
-    const actions = document.createElement('div');
-    actions.className = 'habit-actions';
+    // button: mark today done/undone
+    var markBtn = document.createElement('button');
+    markBtn.textContent = 'Done';
+    markBtn.onclick = (function(id) {
+      return function() {
+        toggleComplete(id, today());
+        saveHabits();
+        renderHabits();
+      }
+    })(h.id);
 
-    // mark complete button for today
-    const markBtn = document.createElement('button');
-    markBtn.textContent = '✓ Today';
-    markBtn.onclick = () => {
-      toggleComplete(h.id, today());
-      saveHabits();
-      renderHabits();
-    };
+    // button: edit habit
+    var editBtn = document.createElement('button');
+    editBtn.textContent = 'Edit';
+    editBtn.onclick = (function(id) {
+      return function() {
+        var newName = prompt('New name:', h.name);
+        var newFreq = prompt('New freq (daily/weekly):', h.frequency);
+        if (newName) { h.name = newName.trim(); }
+        if (newFreq === 'daily' || newFreq === 'weekly') {
+          h.frequency = newFreq;
+        }
+        saveHabits();
+        renderHabits();
+      }
+    })(h.id);
 
-    // delete
-    const delBtn = document.createElement('button');
+    // button: view history
+    var histBtn = document.createElement('button');
+    histBtn.textContent = 'History';
+    histBtn.onclick = (function(entries, li) {
+      return function() {
+        var hist = li.querySelector('.history');
+        if (hist) {
+          hist.style.display = hist.style.display === 'none' ? 'block' : 'none';
+        } else {
+          var d = document.createElement('div');
+          d.className = 'history';
+          if (entries.length > 0) {
+            d.textContent = 'Done on: ' + entries.join(', ');
+          } else {
+            d.textContent = 'No history yet.';
+          }
+          li.appendChild(d);
+        }
+      }
+    })(h.entries, li);
+
+    // button: delete habit
+    var delBtn = document.createElement('button');
     delBtn.textContent = 'Delete';
-    delBtn.onclick = () => {
-      habits = habits.filter(x => x.id !== h.id);
-      saveHabits();
-      renderHabits();
-    };
+    delBtn.onclick = (function(id) {
+      return function() {
+        deleteHabit(id);
+        saveHabits();
+        renderHabits();
+      }
+    })(h.id);
 
-    actions.append(markBtn, delBtn);
-    li.append(info, actions);
-    ul.append(li);
-  });
-}
-
-// toggle today's completion
-function toggleComplete(id, date) {
-  const h = habits.find(x => x.id === id);
-  if (!h) return;
-  const idx = h.entries.indexOf(date);
-  if (idx > -1) {
-    h.entries.splice(idx, 1);
-  } else {
-    h.entries.push(date);
+    // put it all together
+    li.appendChild(info);
+    li.appendChild(markBtn);
+    li.appendChild(editBtn);
+    li.appendChild(histBtn);
+    li.appendChild(delBtn);
+    ul.appendChild(li);
   }
-  updateLongest(h);
 }
 
-// calculate current streak (days)
+// toggle completion for a given date
+function toggleComplete(id, date) {
+  for (var i = 0; i < habits.length; i++) {
+    if (habits[i].id === id) {
+      var idx = habits[i].entries.indexOf(date);
+      if (idx > -1) {
+        habits[i].entries.splice(idx, 1);
+      } else {
+        habits[i].entries.push(date);
+      }
+      updateLongest(habits[i]);
+      break;
+    }
+  }
+}
+
+// delete a habit by id
+function deleteHabit(id) {
+  var newList = [];
+  for (var i = 0; i < habits.length; i++) {
+    if (habits[i].id !== id) {
+      newList.push(habits[i]);
+    }
+  }
+  habits = newList;
+}
+
+// calculate current streak (count back from today)
 function calcCurrentStreak(habit) {
-  let streak = 0;
-  let d = new Date(today());
-  while (habit.entries.includes(formatDate(d))) {
+  var streak = 0;
+  var d = new Date(today());
+  while (habit.entries.indexOf(formatDate(d)) !== -1) {
     streak++;
     d.setDate(d.getDate() - 1);
   }
   return streak;
 }
 
-// update longest streak
+// update the longest streak ever
 function updateLongest(habit) {
-  const dates = habit.entries.slice().sort();
-  let max = 0, curr = 1;
-  for (let i = 1; i < dates.length; i++) {
-    const prev = new Date(dates[i-1]), currD = new Date(dates[i]);
-    if ((currD - prev) === 24*60*60*1000) {
+  var dates = habit.entries.slice().sort();
+  var max = 0;
+  var curr = 1;
+  for (var i = 1; i < dates.length; i++) {
+    var prev = new Date(dates[i-1]);
+    var now = new Date(dates[i]);
+    if ((now - prev) === 24*60*60*1000) {
       curr++;
     } else {
-      max = Math.max(max, curr);
+      if (curr > max) { max = curr; }
       curr = 1;
     }
   }
-  habit.longestStreak = Math.max(max, curr);
+  if (curr > max) { max = curr; }
+  habit.longestStreak = max;
 }
 
-// helper for YYYY-MM-DD
+// format Date to 'YYYY-MM-DD'
 function formatDate(d) {
   return d.toISOString().split('T')[0];
 }
@@ -107,24 +166,25 @@ function today() {
   return formatDate(new Date());
 }
 
-// form submit
-document.getElementById('habit-form').addEventListener('submit', e => {
+// handle form submit
+document.getElementById('habit-form').addEventListener('submit', function(e) {
   e.preventDefault();
-  const name = document.getElementById('habit-name').value.trim();
-  const freq = document.getElementById('habit-frequency').value;
-  if (!name) return;
-  habits.push({
-    id: uuid(),
-    name,
-    frequency: freq,
-    entries: [],
-    longestStreak: 0
-  });
-  saveHabits();
-  renderHabits();
-  e.target.reset();
+  var name = document.getElementById('habit-name').value.trim();
+  var freq = document.getElementById('habit-frequency').value;
+  if (name) {
+    habits.push({
+      id: Date.now().toString(), // simple id
+      name: name,
+      frequency: freq,
+      entries: [],
+      longestStreak: 0
+    });
+    saveHabits();
+    renderHabits();
+    e.target.reset();
+  }
 });
 
-// init
+// init on page load
 loadHabits();
 renderHabits();

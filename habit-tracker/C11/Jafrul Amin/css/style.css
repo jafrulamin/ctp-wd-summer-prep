@@ -1,6 +1,5 @@
-* {
-  box-sizing: border-box;
-}
+/* reset box model */
+* { box-sizing: border-box; }
 
 body {
   font-family: sans-serif;
@@ -9,35 +8,38 @@ body {
   padding: 0 1rem;
 }
 
-header h1 {
+h1 {
   text-align: center;
 }
 
-.add-habit {
-  margin-bottom: 1.5rem;
+form {
+  margin-bottom: 1rem;
 }
 
-#habit-form input,
-#habit-form select {
+form input, form select, form button {
   padding: 0.5rem;
   margin-right: 0.5rem;
-}
-
-#habit-form button {
-  padding: 0.5rem 1rem;
 }
 
 .habit-item {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #ccc;
 }
 
-.habit-info {
+.habit-item div {
   flex: 1;
 }
 
-.habit-actions button {
+.habit-item button {
   margin-left: 0.5rem;
+}
+
+/* history text */
+.history {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 0.5rem;
 }
