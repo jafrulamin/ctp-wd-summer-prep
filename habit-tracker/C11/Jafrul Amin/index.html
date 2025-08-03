@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Habit Tracker</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>My Habit Tracker</h1>
+    </header>
+
+    <section class="add-habit">
+      <form id="habit-form">
+        <input type="text" id="habit-name" placeholder="Habit name" required />
+        <select id="habit-frequency">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+        <button type="submit">Add Habit</button>
+      </form>
+    </section>
+
+    <section class="habit-list">
+      <ul id="habits"></ul>
+    </section>
+
+    <script src="js/app.js"></script>
+  </body>
+</html>
